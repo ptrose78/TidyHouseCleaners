@@ -6,27 +6,42 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { calculateQuote } from "@/lib/quote";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
-import { format } from "date-fns";
+import { DatePicker } from "@/components/DatePicker";
+import { TimeSlotButton } from "@/components/TimeSlotButton";
 
+// ----------------------------
+// ZOD SCHEMA
+// ----------------------------
 const schema = z.object({
-  homeSqFt: z.string().min(1),
-  bedrooms: z.coerce.number().min(0).max(20),
-  bathrooms: z.coerce.number().min(0).max(20),
+  homeSqFt: z.string().min(1, "Please select a size"),
+  bedrooms: z.coerce.number().min(0, "Required"),
+  bathrooms: z.coerce.number().min(0, "Required"),
   cleaningType: z.enum(["standard", "deep"]),
   cleaningNeeds: z.enum(["one-time", "weekly", "bi-weekly", "monthly"]),
   isNewCustomer: z.boolean().default(false),
-  preferredDate: z.date(),
-  timeSlot: z.enum(["morning", "afternoon", "evening"]),
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(10),
-  address: z.string().min(5),
+  preferredDate: z.date()
+    .nullable()
+    .optional()
+    .refine((date) => !!date, { message: "Please select a date" }),
+
+  timeSlot: z.enum(["morning", "afternoon", "evening"])
+    .nullable()
+    .optional()
+    .refine((val) => !!val, { message: "Please select a time slot" }),
+  name: z.string().min(2, "Required"),
+  email: z.string().email("Invalid email"),
+  phone: z.string().min(10, "Invalid phone number"),
+  address: z.string().min(5, "Required"),
 });
 
 type FormData = z.infer<typeof schema>;
 
+// ----------------------------
+// COMPONENT
+// ----------------------------
 export default function BookingPage() {
   const [step, setStep] = useState(1);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const {
     register,
@@ -34,13 +49,19 @@ export default function BookingPage() {
     watch,
     setValue,
     trigger,
-    formState: { errors },
+    reset,
+    formState: { errors, submitCount },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      homeSqFt: "",
+      bedrooms: 0,
+      bathrooms: 0,
       cleaningType: "standard",
       cleaningNeeds: "one-time",
       isNewCustomer: false,
+      preferredDate: undefined,
+      timeSlot: undefined,
     },
   });
 
@@ -49,8 +70,13 @@ export default function BookingPage() {
   const bathrooms = watch("bathrooms");
   const cleaningType = watch("cleaningType");
   const cleaningNeeds = watch("cleaningNeeds");
+  const preferredDate = watch("preferredDate");
+  const timeSlot = watch("timeSlot");
   const isNewCustomer = watch("isNewCustomer");
 
+  // ----------------------------
+  // PRICE CALCULATION
+  // ----------------------------
   const estimatedPrice =
     homeSqFt && bedrooms >= 0 && bathrooms >= 0
       ? calculateQuote({
@@ -63,17 +89,34 @@ export default function BookingPage() {
         })
       : null;
 
-  const goNext = async () => {
-    let fields: (keyof FormData)[] = [];
-
-    if (step === 1) fields = ["homeSqFt", "bedrooms", "bathrooms"];
-    if (step === 2) fields = ["cleaningType", "cleaningNeeds"];
-    if (step === 3) fields = ["preferredDate", "timeSlot"];
-
-    const valid = await trigger(fields);
-    if (valid) setStep(step + 1);
+  // ----------------------------
+  // STEP VALIDATION
+  // ----------------------------
+  const fieldsByStep: Record<number, (keyof FormData)[]> = {
+    1: ["homeSqFt", "bedrooms", "bathrooms"],
+    2: ["cleaningType", "cleaningNeeds"],
+    3: ["preferredDate", "timeSlot"],
   };
 
+ const goNext = async () => {
+  let fields: (keyof FormData)[] = [];
+
+  if (step === 1) fields = ["homeSqFt", "bedrooms", "bathrooms"];
+  if (step === 2) fields = ["cleaningType", "cleaningNeeds"];
+  if (step === 3) fields = ["preferredDate", "timeSlot"];
+
+  // mark as touched
+  fields.forEach((f) => setTouched((prev) => ({ ...prev, [f]: true })));
+
+  await new Promise((res) => setTimeout(res, 10));
+
+  const valid = await trigger(fields);
+  if (valid) setStep(step + 1);
+};
+
+  // ----------------------------
+  // SUBMIT
+  // ----------------------------
   const onSubmit = async (data: FormData) => {
     await fetch("/api/submit-booking", {
       method: "POST",
@@ -82,38 +125,70 @@ export default function BookingPage() {
     });
 
     alert("Your request has been submitted!");
+
+    reset();
+    setStep(1);
   };
 
+  // ----------------------------
+  // UI
+  // ----------------------------
   return (
     <div className="py-20 px-6 max-w-3xl mx-auto">
-      {/* PROGRESS */}
-      <div className="flex justify-center mb-10">
-        {[1, 2, 3, 4].map((n) => (
-          <div key={n} className="flex items-center">
-            <div
-              className={`w-10 h-10 flex items-center justify-center rounded-full text-white font-bold ${
-                step >= n ? "bg-primary" : "bg-gray-300"
-              }`}
-            >
-              {step > n ? <Check /> : n}
+      {/* PROGRESS INDICATOR */}
+      <div className="flex justify-center items-center mb-10">
+        {[1, 2, 3, 4].map((n) => {
+          const isCompleted = step > n;
+          const isActive = step === n;
+
+          return (
+            <div key={n} className="flex items-center">
+              <div
+                className={`
+                  w-10 h-10 rounded-full flex items-center justify-center font-bold
+                  ${isCompleted || isActive ? "bg-primary text-white" : "bg-gray-300"}
+                `}
+              >
+                {isCompleted ? <Check className="w-6 h-6" /> : n}
+              </div>
+
+              {n < 4 && (
+                <div
+                  className={`
+                    w-14 h-1 mx-2
+                    ${step > n ? "bg-primary" : "bg-gray-300"}
+                  `}
+                />
+              )}
             </div>
-            {n < 4 && (
-              <div className={`w-12 h-1 mx-2 ${step > n ? "bg-primary" : "bg-gray-300"}`} />
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        {/* STEP 1 */}
+        {/* -----------------------------
+            STEP 1 — HOME DETAILS
+        */}
         {step === 1 && (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-center mb-6">Tell us about your home</h2>
+            <h2 className="text-3xl font-bold text-center mb-6">
+              Tell us about your home
+            </h2>
 
-            {/* Home Sq Ft */}
+            {/* HOME SQ FT */}
             <div>
               <label className="block mb-2 font-semibold">Home Sq. Ft *</label>
-              <select {...register("homeSqFt")} className="border p-3 rounded w-full">
+              <select
+                {...register("homeSqFt")}
+                onChange={(e) => {
+                  setValue("homeSqFt", e.target.value);
+                  trigger("homeSqFt");
+                }}
+                className={`
+                  border p-3 rounded w-full
+                  ${errors.homeSqFt ? "border-red-500 bg-red-50" : "border-gray-300"}
+                `}
+              >
                 <option value="">Select size...</option>
                 <option value="under_1000">Under 1000 sq ft</option>
                 <option value="1001_1500">1001–1500 sq ft</option>
@@ -124,56 +199,95 @@ export default function BookingPage() {
                 <option value="3501_4000">3501–4000 sq ft</option>
                 <option value="4001_plus">4001+ sq ft</option>
               </select>
+
+              {errors.homeSqFt && (
+                <p className="text-red-600 text-sm">{errors.homeSqFt.message}</p>
+              )}
             </div>
 
-            {/* Bedroom & Bathroom Count */}
+            {/* BEDROOM + BATHROOM */}
             <div className="grid grid-cols-2 gap-6">
+              {/* BEDROOMS */}
               <div>
                 <label className="block mb-2 font-semibold">Bedrooms *</label>
-                <input type="number" {...register("bedrooms")} className="border p-3 rounded w-full" />
+                <input
+                  type="number"
+                  {...register("bedrooms")}
+                  onChange={(e) => {
+                    setValue("bedrooms", Number(e.target.value));
+                    trigger("bedrooms");
+                  }}
+                  className={`
+                    border p-3 rounded w-full
+                    ${errors.bedrooms ? "border-red-500 bg-red-50" : "border-gray-300"}
+                  `}
+                />
+                {errors.bedrooms && (
+                  <p className="text-red-600 text-sm">{errors.bedrooms.message}</p>
+                )}
               </div>
+
+              {/* BATHROOMS */}
               <div>
                 <label className="block mb-2 font-semibold">Bathrooms *</label>
-                <input type="number" {...register("bathrooms")} className="border p-3 rounded w-full" />
+                <input
+                  type="number"
+                  {...register("bathrooms")}
+                  onChange={(e) => {
+                    setValue("bathrooms", Number(e.target.value));
+                    trigger("bathrooms");
+                  }}
+                  className={`
+                    border p-3 rounded w-full
+                    ${errors.bathrooms ? "border-red-500 bg-red-50" : "border-gray-300"}
+                  `}
+                />
+                {errors.bathrooms && (
+                  <p className="text-red-600 text-sm">{errors.bathrooms.message}</p>
+                )}
               </div>
             </div>
 
+            {/* CONTINUE BUTTON */}
             <button
               type="button"
               onClick={goNext}
-              className="w-full bg-primary text-white py-4 rounded-lg text-lg flex items-center justify-center gap-2"
+              className="w-full bg-primary py-4 text-white rounded-lg text-lg flex items-center justify-center gap-2"
             >
               Continue <ChevronRight />
             </button>
           </div>
         )}
 
-        {/* STEP 2 */}
+        {/* -----------------------------
+            STEP 2 — CLEANING TYPE
+        ------------------------------ */}
         {step === 2 && (
           <div className="space-y-8">
-            <h2 className="text-3xl font-bold text-center mb-6">Choose your cleaning type</h2>
+            <h2 className="text-3xl font-bold text-center">Choose your cleaning type</h2>
 
             {/* Standard / Deep */}
             <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setValue("cleaningType", "standard")}
-                className={`p-6 border rounded-xl ${
-                  cleaningType === "standard" ? "border-primary bg-primary/10" : ""
-                }`}
-              >
-                Standard
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setValue("cleaningType", "deep")}
-                className={`p-6 border rounded-xl ${
-                  cleaningType === "deep" ? "border-primary bg-primary/10" : ""
-                }`}
-              >
-                Deep Clean
-              </button>
+              {[
+                { label: "Standard", value: "standard" },
+                { label: "Deep Clean", value: "deep" },
+              ].map(({ label, value }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setValue("cleaningType", value as any)}
+                  className={`
+                    p-6 border rounded-xl
+                    ${
+                      watch("cleaningType") === value
+                        ? "border-primary bg-primary/10"
+                        : "border-gray-300"
+                    }
+                  `}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* Frequency */}
@@ -183,26 +297,21 @@ export default function BookingPage() {
                   key={v}
                   type="button"
                   onClick={() => setValue("cleaningNeeds", v as any)}
-                  className={`p-4 border rounded-xl capitalize ${
-                    cleaningNeeds === v ? "border-primary bg-primary/10" : ""
-                  }`}
+                  className={`
+                    p-4 border rounded-xl capitalize
+                    ${
+                      watch("cleaningNeeds") === v
+                        ? "border-primary bg-primary/10"
+                        : "border-gray-300"
+                    }
+                  `}
                 >
                   {v.replace("-", " ")}
                 </button>
               ))}
             </div>
 
-            {/* New Customer Offer */}
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                {...register("isNewCustomer")}
-                className="w-5 h-5"
-              />
-              <span className="font-semibold">Apply New Customer Discount</span>
-            </label>
-
-            {/* Price Preview */}
+            {/* PRICE PREVIEW */}
             {estimatedPrice && (
               <div className="p-6 bg-primary text-white rounded-xl text-center">
                 <p className="text-sm opacity-90">Estimated Price</p>
@@ -210,14 +319,20 @@ export default function BookingPage() {
               </div>
             )}
 
+            {/* Navigation */}
             <div className="flex justify-between">
-              <button type="button" onClick={() => setStep(1)} className="text-primary flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="text-primary flex items-center gap-2"
+              >
                 <ChevronLeft /> Back
               </button>
+
               <button
                 type="button"
                 onClick={goNext}
-                className="bg-primary text-white px-6 py-3 rounded-lg flex items-center gap-2"
+                className="bg-primary px-6 py-3 rounded-lg flex items-center gap-2 text-white"
               >
                 Continue <ChevronRight />
               </button>
@@ -225,41 +340,67 @@ export default function BookingPage() {
           </div>
         )}
 
-        {/* STEP 3 — SCHEDULING */}
+       {/* -----------------------------
+            STEP 3 — SCHEDULING (Updated)
+        ------------------------------ */}
         {step === 3 && (
           <div className="space-y-8">
             <h2 className="text-3xl font-bold text-center">Choose your date</h2>
 
-            {/* Date */}
+            {/* DATE */}
             <div>
               <label className="block mb-2 font-semibold">Preferred Date *</label>
-              <input type="date" {...register("preferredDate", { valueAsDate: true })} className="border p-3 rounded w-full" />
+              <DatePicker
+                date={preferredDate}
+                onSelect={(d) => {
+                  // Added { shouldValidate: true } to clear error immediately on selection
+                  setValue("preferredDate", d as Date, { shouldValidate: true });
+                }}
+              />
+              {errors.preferredDate && (
+                <p className="text-red-600 text-sm mt-2">
+                  {errors.preferredDate.message}
+                </p>
+              )}
             </div>
 
-            {/* Time Slot */}
-            <div className="grid grid-cols-3 gap-4">
-              {["morning", "afternoon", "evening"].map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => setValue("timeSlot", slot as any)}
-                  className={`p-4 border rounded-xl capitalize ${
-                    watch("timeSlot") === slot ? "border-primary bg-primary/10" : ""
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
+            {/* TIME SLOT */}
+            <div>
+              <label className="block mb-2 font-semibold">Time of Day *</label>
+              <div className="grid grid-cols-3 gap-4">
+                {["morning", "afternoon", "evening"].map((slot) => (
+                  <TimeSlotButton
+                    key={slot}
+                    label={slot}
+                    selected={timeSlot === slot}
+                    onClick={() => {
+                      // Added { shouldValidate: true } to clear error immediately on selection
+                      setValue("timeSlot", slot as any, { shouldValidate: true });
+                    }}
+                  />
+                ))}
+              </div>
+              {errors.timeSlot && (
+                <p className="text-red-600 text-sm mt-2">
+                  {errors.timeSlot.message}
+                </p>
+              )}
             </div>
 
+            {/* Navigation */}
             <div className="flex justify-between">
-              <button type="button" onClick={() => setStep(2)} className="text-primary flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="text-primary flex items-center gap-2"
+              >
                 <ChevronLeft /> Back
               </button>
+
               <button
                 type="button"
                 onClick={goNext}
-                className="bg-primary text-white px-6 py-3 rounded-lg flex items-center gap-2"
+                className="bg-primary px-6 py-3 rounded-lg flex items-center gap-2 text-white"
               >
                 Continue <ChevronRight />
               </button>
@@ -267,28 +408,85 @@ export default function BookingPage() {
           </div>
         )}
 
-        {/* STEP 4 — CONTACT INFO */}
+        {/* -----------------------------
+            STEP 4 — CONTACT INFO
+        ------------------------------ */}
         {step === 4 && (
           <div className="space-y-8">
             <h2 className="text-3xl font-bold text-center">Your information</h2>
 
-            <input placeholder="Full Name *" {...register("name")} className="border p-3 rounded w-full" />
-            <input placeholder="Email Address *" {...register("email")} className="border p-3 rounded w-full" />
-            <input placeholder="Phone Number *" {...register("phone")} className="border p-3 rounded w-full" />
-            <input placeholder="Service Address *" {...register("address")} className="border p-3 rounded w-full" />
+            {/* NAME */}
+            <input
+              placeholder="Full Name *"
+              {...register("name")}
+              className={`
+                border p-3 rounded w-full
+                ${errors.name ? "border-red-500 bg-red-50" : "border-gray-300"}
+              `}
+            />
+            {errors.name && (
+              <p className="text-red-600 text-sm">{errors.name.message}</p>
+            )}
 
-            {/* PRICE */}
+            {/* EMAIL */}
+            <input
+              placeholder="Email Address *"
+              {...register("email")}
+              className={`
+                border p-3 rounded w-full
+                ${errors.email ? "border-red-500 bg-red-50" : "border-gray-300"}
+              `}
+            />
+            {errors.email && (
+              <p className="text-red-600 text-sm">{errors.email.message}</p>
+            )}
+
+            {/* PHONE */}
+            <input
+              placeholder="Phone Number *"
+              {...register("phone")}
+              className={`
+                border p-3 rounded w-full
+                ${errors.phone ? "border-red-500 bg-red-50" : "border-gray-300"}
+              `}
+            />
+            {errors.phone && (
+              <p className="text-red-600 text-sm">{errors.phone.message}</p>
+            )}
+
+            {/* ADDRESS */}
+            <input
+              placeholder="Service Address *"
+              {...register("address")}
+              className={`
+                border p-3 rounded w-full
+                ${errors.address ? "border-red-500 bg-red-50" : "border-gray-300"}
+              `}
+            />
+            {errors.address && (
+              <p className="text-red-600 text-sm">{errors.address.message}</p>
+            )}
+
+            {/* PRICE FINAL */}
             <div className="p-8 bg-primary text-white text-center rounded-xl">
               <p className="text-sm opacity-80">Your Estimated Price</p>
               <p className="text-4xl font-bold">${estimatedPrice}</p>
             </div>
 
+            {/* Submit */}
             <div className="flex justify-between">
-              <button type="button" onClick={() => setStep(3)} className="text-primary flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                className="text-primary flex items-center gap-2"
+              >
                 <ChevronLeft /> Back
               </button>
 
-              <button type="submit" className="bg-primary text-white px-6 py-3 rounded-lg text-lg">
+              <button
+                type="submit"
+                className="bg-primary px-6 py-3 rounded-lg text-white text-lg"
+              >
                 Submit Request
               </button>
             </div>

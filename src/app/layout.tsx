@@ -1,9 +1,7 @@
-
 import "./globals.css";
 import { Inter } from "next/font/google";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
-import MobileNav from "@/components/mobile-nav";
+import Navbar from "@/components/navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,41 +11,32 @@ export const metadata = {
     "Premium house cleaning in Milwaukee, Oak Creek, Franklin, and surrounding areas. Standard clean, deep clean, move-in/move-out. Book your professional cleaning today.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body className={cn(inter.className, "bg-white text-gray-900")}>
-        <Header />
-        <main>{children}</main>
-        <Footer />
-      </body>
-    </html>
+     <head>
+      <script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+      ></script>
+    </head>
+    <body>
+      <Navbar />
+      <main>{children}</main>
+      <Footer />
+    </body>
+  </html>
   );
 }
 
-function Header() {
-  return (
-    <header className="border-b bg-white/90 backdrop-blur-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-between p-4">
-        <Link href="/" className="text-2xl font-bold text-primary">
-          Tidy House Cleaners
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-8 text-lg">
-          <Link href="/services" className="hover:text-primary">Services</Link>
-          <Link href="/contact" className="hover:text-primary">Contact</Link>
-          <Link href="/booking" className="px-5 py-2 bg-primary text-white rounded-xl hover:bg-primary/90">
-            Book Now
-          </Link>
-        </nav>
-
-        <MobileNav />
-      </div>
-    </header>
-  );
-}
-
-<MobileNav />
+/* ---------------------
+      FOOTER
+------------------------ */
 
 function Footer() {
   return (
@@ -64,9 +53,9 @@ function Footer() {
         <div>
           <h4 className="font-semibold mb-4">Quick Links</h4>
           <ul className="space-y-2 text-gray-700">
-            <li><Link href="/services">Services</Link></li>
-            <li><Link href="/contact">Contact</Link></li>
-            <li><Link href="/booking">Book a Cleaning</Link></li>
+            <li><a href="/services">Services</a></li>
+            <li><a href="/contact">Contact</a></li>
+            <li><a href="/booking">Book a Cleaning</a></li>
           </ul>
         </div>
 
