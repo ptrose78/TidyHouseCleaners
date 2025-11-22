@@ -14,24 +14,29 @@ import { TimeSlotButton } from "@/components/TimeSlotButton";
 // ----------------------------
 const schema = z.object({
   homeSqFt: z.string().min(1, "Please select a size"),
-  bedrooms: z.coerce.number().min(0, "Required"),
-  bathrooms: z.coerce.number().min(0, "Required"),
+
+  bedrooms: z.number().int().min(0, "Required"),
+  bathrooms: z.number().int().min(0, "Required"),
+
   cleaningType: z.enum(["standard", "deep"]),
   cleaningNeeds: z.enum(["one-time", "weekly", "bi-weekly", "monthly"]),
   isNewCustomer: z.boolean().default(false),
-  preferredDate: z.date()
-    .nullable()
-    .optional()
-    .refine((date) => !!date, { message: "Please select a date" }),
 
-  timeSlot: z.enum(["morning", "afternoon", "evening"])
-    .nullable()
-    .optional()
-    .refine((val) => !!val, { message: "Please select a time slot" }),
+  preferredDate: z.date().optional(),  // <-- NOT nullable
+  timeSlot: z.enum(["morning", "afternoon", "evening"]).optional(),
+
   name: z.string().min(2, "Required"),
   email: z.string().email("Invalid email"),
   phone: z.string().min(10, "Invalid phone number"),
   address: z.string().min(5, "Required"),
+})
+.refine((data) => !!data.preferredDate, {
+  message: "Please select a date",
+  path: ["preferredDate"],
+})
+.refine((data) => !!data.timeSlot, {
+  message: "Please select a time slot",
+  path: ["timeSlot"],
 });
 
 type FormData = z.infer<typeof schema>;
@@ -51,7 +56,7 @@ export default function BookingPage() {
     trigger,
     reset,
     formState: { errors, submitCount },
-  } = useForm<FormData>({
+  } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       homeSqFt: "",
@@ -62,6 +67,10 @@ export default function BookingPage() {
       isNewCustomer: false,
       preferredDate: undefined,
       timeSlot: undefined,
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
     },
   });
 
@@ -85,7 +94,7 @@ export default function BookingPage() {
           bathrooms,
           cleaningType,
           cleaningNeeds,
-          isNewCustomer,
+          isNewCustomer: isNewCustomer ?? false,
         })
       : null;
 

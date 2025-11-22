@@ -35,7 +35,7 @@ export function calculateQuote({
     monthly: 10,
   };
 
-  let price = sqFtBase[homeSqFt] || 0;
+  let price = sqFtBase[homeSqFt as keyof typeof sqFtBase] || 0;
 
   price += bedrooms * 15;
   price += bathrooms * 22;

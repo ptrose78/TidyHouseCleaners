@@ -42,10 +42,10 @@ export default function ContactPage() {
   // -------------------
   useEffect(() => {
     const interval = setInterval(() => {
-      if (window?.turnstile) {
-        window.turnstile.render("#turnstile-container", {
-          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
-          callback: (token: string) => {
+     if ((window as any).turnstile) {
+          (window as any).turnstile.render("#turnstile-container", {
+            sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
+            callback: (token: string) => {
             setValue("turnstileToken", token);
             setCaptchaReady(true);
           },
@@ -64,7 +64,7 @@ export default function ContactPage() {
             console.log("Turnstile expired — resetting…");
             setCaptchaReady(false);
             try {
-              window.turnstile.reset("#turnstile-container");
+             (window as any).turnstile.reset("#turnstile-container");
             } catch {}
           },
         });
