@@ -53,7 +53,8 @@ export default function ContactPage() {
           // ⭐ INVISIBLE CAPTCHA
           size: "invisible",
           execution: "async",
-          appearance: "none",
+          appearance: "execute",
+
 
           "error-callback": () => {
             console.warn("Turnstile error — retrying…");
