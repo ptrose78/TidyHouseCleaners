@@ -59,8 +59,8 @@ function Footer() {
 
         <div>
           <h4 className="font-semibold mb-4">Contact</h4>
-          <p className="text-gray-700">Email: info@tidyhousecleaners.com</p>
-          <p className="text-gray-700">Phone: (414) 555-1234</p>
+          <p className="text-gray-700">Email: {process.env.BUSINESS_EMAIL}</p>
+          <p className="text-gray-700">Phone: {process.env.BUSINESS_PHONE}</p>
         </div>
       </div>
 
