@@ -52,7 +52,7 @@ export default function ContactPage() {
 
           // ⭐ INVISIBLE CAPTCHA
           size: "invisible",
-          execution: "async",
+          execution: "execute",
           appearance: "execute",
 
 
