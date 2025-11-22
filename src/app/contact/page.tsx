@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // -------------------
-// VALIDATION SCHEMA
+// VALIDATION
 // -------------------
 const schema = z.object({
   name: z.string().min(2, "Please enter your name"),
@@ -41,53 +41,52 @@ export default function ContactPage() {
   // LOAD TURNSTILE
   // -------------------
   useEffect(() => {
+    let widgetId: any = null;
+
     const interval = setInterval(() => {
-     if ((window as any).turnstile) {
-          (window as any).turnstile.render("#turnstile-container", {
-            sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
-            callback: (token: string) => {
-            setValue("turnstileToken", token);
-            setCaptchaReady(true);
-          },
+      const ts = (window as any).turnstile;
+      if (!ts) return;
 
-          // ⭐ INVISIBLE CAPTCHA
-          size: "invisible",
-          execution: "execute",
-          appearance: "execute",
+      // Render widget once Turnstile is available
+      widgetId = ts.render("#turnstile-container", {
+        sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
+        size: "invisible",
+        appearance: "execute",
+        execution: "execute",
 
+        callback: (token: string) => {
+          setValue("turnstileToken", token);
+          setCaptchaReady(true);
+        },
 
-          "error-callback": () => {
-            console.warn("Turnstile error — retrying…");
-            setCaptchaReady(false);
-          },
+        "error-callback": () => {
+          console.warn("Turnstile error. Retrying…");
+          setCaptchaReady(false);
+        },
 
-          "expired-callback": () => {
-            console.log("Turnstile expired — resetting…");
-            setCaptchaReady(false);
-            try {
-             (window as any).turnstile.reset("#turnstile-container");
-            } catch {}
-          },
-        });
+        "expired-callback": () => {
+          setCaptchaReady(false);
+          ts.reset(widgetId);
+        },
+      });
 
-        clearInterval(interval);
-      }
+      clearInterval(interval);
     }, 200);
 
     return () => clearInterval(interval);
   }, [setValue]);
 
   // -------------------
-  // SUBMIT HANDLER
+  // SUBMIT
   // -------------------
   const onSubmit = async (data: FormData) => {
-    const response = await fetch("/api/send-contact", {
+    const res = await fetch("/api/send-contact", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
 
-    if (response.ok) {
+    if (res.ok) {
       setSubmitted(true);
       reset();
       setCaptchaReady(false);
@@ -104,14 +103,12 @@ export default function ContactPage() {
         Have a question? We’re here to help.
       </p>
 
-      {/* SUCCESS MESSAGE */}
       {submitted ? (
         <div className="p-6 bg-green-100 border border-green-400 rounded-lg text-green-800 text-lg">
           ✅ Thank you! Your message has been sent. We'll reach out within 24 hours.
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
           {/* NAME */}
           <div>
             <label className="block mb-2 font-semibold">Full Name *</label>
@@ -122,7 +119,9 @@ export default function ContactPage() {
                 errors.name ? "border-red-500 bg-red-50" : "border-gray-300"
               }`}
             />
-            {errors.name && <p className="text-red-600 text-sm">{errors.name.message}</p>}
+            {errors.name && (
+              <p className="text-red-600 text-sm">{errors.name.message}</p>
+            )}
           </div>
 
           {/* EMAIL */}
@@ -135,10 +134,12 @@ export default function ContactPage() {
                 errors.email ? "border-red-500 bg-red-50" : "border-gray-300"
               }`}
             />
-            {errors.email && <p className="text-red-600 text-sm">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-red-600 text-sm">{errors.email.message}</p>
+            )}
           </div>
 
-          {/* PHONE (OPTIONAL) */}
+          {/* PHONE */}
           <div>
             <label className="block mb-2 font-semibold">
               Phone <span className="text-gray-500">(optional)</span>
@@ -150,7 +151,9 @@ export default function ContactPage() {
                 errors.phone ? "border-red-500 bg-red-50" : "border-gray-300"
               }`}
             />
-            {errors.phone && <p className="text-red-600 text-sm">{errors.phone.message}</p>}
+            {errors.phone && (
+              <p className="text-red-600 text-sm">{errors.phone.message}</p>
+            )}
           </div>
 
           {/* MESSAGE */}
@@ -163,25 +166,22 @@ export default function ContactPage() {
                 errors.message ? "border-red-500 bg-red-50" : "border-gray-300"
               }`}
             ></textarea>
-            {errors.message && <p className="text-red-600 text-sm">{errors.message.message}</p>}
+            {errors.message && (
+              <p className="text-red-600 text-sm">{errors.message.message}</p>
+            )}
           </div>
 
-          {/* TURNSTILE CAPTCHA */}
+          {/* TURNSTILE */}
           <div>
-            <div id="turnstile-container" />
-
+            <div id="turnstile-container"></div>
             {!captchaReady && (
               <p className="text-sm text-gray-500">Loading CAPTCHA…</p>
-            )}
-
-            {errors.turnstileToken && (
-              <p className="text-red-600 text-sm">{errors.turnstileToken.message}</p>
             )}
 
             <input type="hidden" {...register("turnstileToken")} />
           </div>
 
-          {/* SUBMIT */}
+          {/* SUBMIT BUTTON */}
           <button
             type="submit"
             disabled={isSubmitting || !captchaReady}
