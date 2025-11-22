@@ -40,41 +40,46 @@ export default function ContactPage() {
   // -------------------
   // LOAD TURNSTILE
   // -------------------
-  useEffect(() => {
-    let widgetId: any = null;
+ useEffect(() => {
+  let widgetId: any = null;
 
-    const interval = setInterval(() => {
-      const ts = (window as any).turnstile;
-      if (!ts) return;
+  const interval = setInterval(() => {
+    const ts = (window as any).turnstile;
+    if (!ts) return;
 
-      // Render widget once Turnstile is available
-      widgetId = ts.render("#turnstile-container", {
-        sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
-        size: "invisible",
-        appearance: "execute",
-        execution: "execute",
+    // Render widget once
+    widgetId = ts.render("#turnstile-container", {
+      sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
+      size: "invisible",
+      appearance: "execute",
+      execution: "execute",
 
-        callback: (token: string) => {
-          setValue("turnstileToken", token);
-          setCaptchaReady(true);
-        },
+      callback: (token: string) => {
+        setValue("turnstileToken", token);
+        setCaptchaReady(true);
+      },
 
-        "error-callback": () => {
-          console.warn("Turnstile error. Retrying…");
-          setCaptchaReady(false);
-        },
+      "error-callback": () => {
+        setCaptchaReady(false);
+        try { ts.reset(widgetId); } catch {}
+      },
 
-        "expired-callback": () => {
-          setCaptchaReady(false);
-          ts.reset(widgetId);
-        },
-      });
+      "expired-callback": () => {
+        setCaptchaReady(false);
+        try { ts.reset(widgetId); } catch {}
+      },
+    });
 
-      clearInterval(interval);
-    }, 200);
+    setTimeout(() => {
+      ts.execute(widgetId);
+    }, 300);
 
-    return () => clearInterval(interval);
-  }, [setValue]);
+    clearInterval(interval);
+  }, 200);
+
+  return () => clearInterval(interval);
+}, [setValue]);
+
 
   // -------------------
   // SUBMIT
