@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Script 
-          src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=turnstileLoaded"
           strategy="lazyOnload" 
         />
         <Navbar />
