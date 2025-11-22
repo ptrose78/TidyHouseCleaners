@@ -2,6 +2,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/navbar";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,19 +19,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-     <head>
-      <script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-        async
-        defer
-      ></script>
-    </head>
-    <body>
-      <Navbar />
-      <main>{children}</main>
-      <Footer />
-    </body>
-  </html>
+      <body className={inter.className}>
+        <Script 
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
+          strategy="lazyOnload" 
+        />
+        <Navbar />
+        <main>{children}</main>
+        <Footer />
+      </body>
+    </html>
   );
 }
 
