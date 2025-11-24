@@ -15,7 +15,7 @@ export default function Navbar() {
         {/* LOGO + BRAND NAME */}
         <Link href="/" className="flex items-center gap-3">
           <Image
-            src="/Logo-Website.jpg"     // your saved logo
+            src="/logo.jpg"     // your saved logo
             alt="Tidy House Cleaners Logo"
             width={100}             // perfect size for nav
             height={100}
