@@ -5,27 +5,45 @@ export default function HomePage() {
   return (
     <div className="">
 
-      {/* HERO SECTION */}
-      <section className="pt-24 pb-32 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
+      {/* HERO SECTION WITH VIDEO BACKGROUND */}
+      <section className="relative pt-32 pb-40 overflow-hidden">
+        
+        {/* 1. BACKGROUND VIDEO */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute top-0 left-0 w-full h-full object-cover z-0"
+        >
+          {/* Ensure this file is in your /public folder */}
+          <source src="/MyCleaningWorkerWalkingWithSuppliesWithLogos - desktop.mp4" type="video/mp4" />
+        </video>
+
+        {/* 2. DARK OVERLAY (Makes text readable) */}
+        <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10" />
+
+        {/* 3. CONTENT (Relative positioning puts this on top) */}
+        <div className="relative z-20 max-w-6xl mx-auto px-6 text-center text-white">
+          <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6 drop-shadow-md">
             Professional House Cleaning in Milwaukee
           </h1>
-          <p className="text-gray-600 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
+          <p className="text-gray-100 text-lg md:text-xl mb-10 max-w-2xl mx-auto drop-shadow">
             Trusted cleaning service for busy families, professionals,
             and homeowners who want a spotless home without the stress.
           </p>
 
           <a
             href="/booking"
-            className="inline-block bg-primary text-white px-10 py-4 rounded-xl text-xl font-semibold hover:bg-primary/90 shadow-lg"
+            className="inline-block bg-primary text-white px-10 py-4 rounded-xl text-xl font-semibold hover:bg-primary/90 shadow-lg transition-transform hover:scale-105"
           >
             Book Your Cleaning →
           </a>
 
+          {/* Badges - updated to look good on dark background */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-10 max-w-4xl mx-auto">
             <HeroBadge
-              icon={<Star className="w-8 h-8 text-primary" />}
+              icon={<Star className="w-8 h-8 text-yellow-400 fill-yellow-400" />}
               title="Hundreds of 5-Star Reviews"
             />
             <HeroBadge
@@ -33,7 +51,7 @@ export default function HomePage() {
               title="Fully Insured & Trusted"
             />
             <HeroBadge
-              icon={<CheckCircle className="w-8 h-8 text-primary" />}
+              icon={<CheckCircle className="w-8 h-8 text-green-400" />}
               title="100% Satisfaction Guarantee"
             />
           </div>
@@ -90,9 +108,9 @@ export default function HomePage() {
 
 function HeroBadge({ icon, title }: any) {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center p-4 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10">
       {icon}
-      <p className="text-lg font-semibold mt-3">{title}</p>
+      <p className="text-lg font-semibold mt-3 text-white">{title}</p>
     </div>
   );
 }
