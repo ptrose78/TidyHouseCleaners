@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Lock, CreditCard } from "lucide-react";
+import { ChevronLeft, Lock } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { BookingFormValues } from "@/lib/booking/schema";
 
@@ -17,7 +17,7 @@ export default function Step3Finalize({ form, price, onBack }: Step3Props) {
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="text-3xl font-bold">Finalize Booking</h2>
-        <p className="text-gray-500">Enter your details to secure your slot.</p>
+        <p className="text-gray-500">Enter your contact details to proceed to payment.</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -39,8 +39,20 @@ export default function Step3Finalize({ form, price, onBack }: Step3Props) {
 
           <div>
             <label className="block text-sm font-medium mb-1">Phone Number</label>
-            <input {...register("phone")} type="tel" className="border p-3 rounded w-full" placeholder="(555) 123-4567" />
-            {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
+            <input 
+              {...register("phone")} 
+              type="tel" 
+              className="border p-3 rounded w-full" 
+              placeholder="(555) 123-4567" 
+            />
+            {errors.phone ? (
+              <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
+            ) : (
+              // ADD THIS REASSURANCE:
+              <p className="text-xs text-gray-400 mt-1">
+                Only used for appointment reminders. No spam.
+              </p>
+            )}
           </div>
 
           <div>
@@ -50,52 +62,34 @@ export default function Step3Finalize({ form, price, onBack }: Step3Props) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Payment Placeholder */}
-        <div className="space-y-5">
-          <h3 className="font-semibold text-lg border-b pb-2 flex items-center gap-2">
-            <Lock size={16} className="text-green-600" /> Payment Method
-          </h3>
-
-          <div className="bg-gray-50 p-4 rounded-xl border space-y-4">
-            {/* Visual Card Input (Not connected to Form yet) */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Card Number</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="0000 0000 0000 0000" 
-                  className="border p-3 rounded w-full pl-10 bg-white" 
-                  disabled 
-                />
-                <CreditCard className="absolute left-3 top-3.5 text-gray-400" size={18} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Expiry</label>
-                <input type="text" placeholder="MM / YY" className="border p-3 rounded w-full bg-white" disabled />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">CVC</label>
-                <input type="text" placeholder="123" className="border p-3 rounded w-full bg-white" disabled />
-              </div>
-            </div>
-
-            <div className="text-xs text-center text-gray-400 mt-2">
-              <span className="bg-gray-200 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">TEST MODE</span>
-              <span className="ml-2">Payment integration coming soon.</span>
-            </div>
-          </div>
+        {/* RIGHT COLUMN: Summary & Payment Notice */}
+        <div className="space-y-6">
+           <h3 className="font-semibold text-lg border-b pb-2">Booking Summary</h3>
 
           {/* Price Summary */}
-          <div className="bg-primary/5 p-5 rounded-xl border border-primary/20">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-gray-600">Total Estimate</span>
-              <span className="text-3xl font-bold text-primary">${price}</span>
+          <div className="bg-primary/5 p-6 rounded-xl border border-primary/20 space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 font-medium">Estimated Total</span>
+              <span className="text-4xl font-bold text-primary">${price}</span>
             </div>
             <p className="text-xs text-gray-500 text-right">Includes taxes & fees</p>
           </div>
+
+          {/* Secure Redirect Notice */}
+          <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <div className="flex items-start gap-4">
+               <div className="bg-green-100 p-2 rounded-full text-green-700 flex-shrink-0">
+                  <Lock size={20} />
+               </div>
+               <div>
+                  <h4 className="font-bold text-gray-900 text-sm mb-1">Secure Payment</h4>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    You will be redirected to Stripe to securely complete your payment via Credit Card or Bank Transfer.
+                  </p>
+               </div>
+            </div>
+          </div>
+          
         </div>
       </div>
 
@@ -108,9 +102,9 @@ export default function Step3Finalize({ form, price, onBack }: Step3Props) {
         <button 
           type="submit" 
           disabled={isSubmitting}
-          className="bg-green-600 hover:bg-green-700 text-white px-10 py-4 rounded-lg text-lg font-bold shadow-xl shadow-green-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-green-600 hover:bg-green-700 text-white px-10 py-4 rounded-lg text-lg font-bold shadow-xl shadow-green-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          {isSubmitting ? "Processing..." : `Book for $${price}`}
+          {isSubmitting ? "Redirecting..." : "Continue to Payment"}
         </button>
       </div>
     </div>

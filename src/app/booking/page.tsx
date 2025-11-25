@@ -6,14 +6,31 @@ import { useQuoteCalculator } from "@/lib/booking/useQuoteCalculator";
 import { Check } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { BookingFormValues } from "@/lib/booking/schema";
+import { useSearchParams } from "next/navigation"; // <--- 1. Import this
+import { useEffect, Suspense } from "react";       // <--- 2. Import this
 
 // Import the NEW simplified steps
 import Step1Quote from "./steps/Step1Quote";
 import Step2Details from "./steps/Step2Details";
 import Step3Finalize from "./steps/Step3Finalize";
 
-export default function BookingPage() {
+// We separate the Logic into a sub-component to handle "Suspense" safely
+function BookingFormContent() {
   const { form, step, setStep, goBack, addOns, toggleAddOn, onSubmit } = useBookingForm();
+
+  // --- NEW CANCEL LOGIC START ---
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Check if Stripe sent the user back with ?canceled=true
+    if (searchParams.get("canceled")) {
+      alert("Payment was cancelled. You can try again when you are ready.");
+      
+      // Clean up the URL so the alert doesn't show again if they refresh
+      window.history.replaceState(null, "", "/booking");
+    }
+  }, [searchParams]);
+  // --- NEW CANCEL LOGIC END ---
 
   const values = form.watch();
   
@@ -80,7 +97,7 @@ export default function BookingPage() {
               form={form as unknown as UseFormReturn<BookingFormValues>}
               addOns={addOns}
               toggleAddOn={toggleAddOn}
-              price={estimatedPrice} // <--- Pass the price here!
+              price={estimatedPrice}
               onNext={handleNext}
               onBack={goBack}
             />
@@ -97,5 +114,16 @@ export default function BookingPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+// MAIN COMPONENT WRAPPER
+// We wrap the content in Suspense to prevent Next.js build errors
+// because we are using useSearchParams
+export default function BookingPage() {
+  return (
+    <Suspense fallback={<div className="p-20 text-center">Loading booking form...</div>}>
+      <BookingFormContent />
+    </Suspense>
   );
 }
