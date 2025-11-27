@@ -25,7 +25,7 @@ export function useQuoteCalculator(form: BookingFormValues, addOns: AddOn[]) {
     // 2. Add Bathroom fee ($30 per bath is standard)
     // We subtract 1 because usually 1 bath is included in the base package price, 
     // but you can adjust logic as needed. Here I'll just charge per bath.
-    const bathPrice = (form.bathrooms || 0) * 0.25;
+    const bathPrice = (form.bathrooms || 0) * 0.5;
 
     // 3. Deep Clean Multiplier (e.g. +40% or flat fee)
     const deepCleanFee = form.cleaningType === "deep" ? 60 : 0;
