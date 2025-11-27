@@ -39,7 +39,9 @@ export async function POST(request: Request) {
       // 3. Send Email to CUSTOMER
       if (customerEmail) {
         console.log(`📧 Attempting to send email to customer: ${customerEmail}`);
-        const data = await resend.emails.send({
+        
+        // DESTRUCTURED RESPONSE: This fixes the "Property id does not exist" error
+        const { data: customerData, error: customerError } = await resend.emails.send({
           from: `Tidy House Cleaners <${process.env.BUSINESS_EMAIL!}>`,
           to: customerEmail, 
           subject: "Booking Confirmed: Tidy House Cleaners",
@@ -53,25 +55,33 @@ export async function POST(request: Request) {
             </ul>
           `,
         });
-        console.log("✅ Customer Email ID:", data.id); // If this logs, email was sent
-        if (data.error) console.error("❌ Resend Error (Customer):", data.error);
+
+        if (customerError) {
+          console.error("❌ Resend Error (Customer):", customerError);
+        } else {
+          console.log("✅ Customer Email Sent! ID:", customerData?.id);
+        }
       }
 
       // 4. Send Alert Email to YOU
-      // REPLACE 'your-real-email@gmail.com' WITH YOUR ACTUAL EMAIL
       const MY_EMAIL = 'paultrose1@gmail.com'; 
       console.log(`📧 Attempting to send alert to owner: ${MY_EMAIL}`);
       
-      const adminData = await resend.emails.send({
+      const { data: adminData, error: adminError } = await resend.emails.send({
         from: `Tidy House Cleaners <${process.env.BUSINESS_EMAIL!}>`,
         to: MY_EMAIL,
         subject: `NEW BOOKING: ${customer_name}`,
         html: `<p>New job confirmed for $${amountPaid}</p>`,
       });
-      console.log("✅ Admin Email ID:", adminData.id);
-      if (adminData.error) console.error("❌ Resend Error (Admin):", adminData.error);
+
+      if (adminError) {
+        console.error("❌ Resend Error (Admin):", adminError);
+      } else {
+        console.log("✅ Admin Email Sent! ID:", adminData?.id);
+      }
 
     } catch (emailError) {
+      // This catches crashes (e.g., network timeout), distinct from the API returning an error object
       console.error("❌ CRITICAL EMAIL FAILURE:", emailError);
     }
   } else {
