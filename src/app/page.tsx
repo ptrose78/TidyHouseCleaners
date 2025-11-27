@@ -1,36 +1,54 @@
+"use client";
+
+import { useState } from "react";
 import PricingPreview from "@/components/pricing-preview";
 import { CheckCircle, Star, Shield, Phone } from "lucide-react";
 
+const videos = [
+  "/CleaningWorkerWalking-desktop-edit.mp4",
+  "/ProfessionalKitchenCleaning-desktop-edit.mp4", // Replace with your actual second video file name
+];
+
 export default function HomePage() {
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+
+  const handleVideoEnd = () => {
+    // Move to the next video, wrapping back to 0 if we reach the end
+    setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % videos.length);
+  };
+
   return (
     <div className="">
-
-      {/* HERO SECTION WITH VIDEO BACKGROUND */}
+      {/* HERO SECTION */}
       <section className="relative pt-32 pb-40 overflow-hidden">
         
         {/* 1. BACKGROUND VIDEO */}
+        {/* We use the 'key' prop here. When the key changes, React unmounts 
+            the old video and mounts the new one, ensuring autoPlay triggers correctly.
+        */}
         <video
+          key={videos[currentVideoIndex]} 
           autoPlay
-          loop
           muted
           playsInline
-          className="absolute top-0 left-0 w-full h-full object-cover z-0"
+          onEnded={handleVideoEnd} 
+          // CHANGE: Added 'md:object-top' to fix desktop cropping
+          className="absolute top-0 left-0 w-full h-full object-cover md:object-top z-0 transition-opacity duration-500"
         >
-          {/* Ensure this file is in your /public folder */}
-          <source src="/MyCleaningWorkerWalkingWithSuppliesWithLogos - desktop.mp4" type="video/mp4" />
+          <source src={videos[currentVideoIndex]} type="video/mp4" />
         </video>
 
-        {/* 2. DARK OVERLAY (Makes text readable) */}
+        {/* 2. DARK OVERLAY */}
         <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10" />
 
-        {/* 3. CONTENT (Relative positioning puts this on top) */}
+        {/* 3. CONTENT */}
         <div className="relative z-20 max-w-6xl mx-auto px-6 text-center text-white">
           <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6 drop-shadow-md">
             Professional House Cleaning in Milwaukee
           </h1>
           <p className="text-gray-100 text-lg md:text-xl mb-10 max-w-2xl mx-auto drop-shadow">
-            Trusted cleaning service for busy families, professionals,
-            and homeowners who want a spotless home without the stress.
+            Trusted cleaning service for busy families, professionals, and
+            homeowners who want a spotless home without the stress.
           </p>
 
           <a
@@ -40,7 +58,7 @@ export default function HomePage() {
             Book Your Cleaning →
           </a>
 
-          {/* Badges - updated to look good on dark background */}
+          {/* Badges */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-10 max-w-4xl mx-auto">
             <HeroBadge
               icon={<Star className="w-8 h-8 text-yellow-400 fill-yellow-400" />}
@@ -64,12 +82,23 @@ export default function HomePage() {
       {/* WHY CHOOSE US */}
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-5xl font-semibold mb-8">Why Choose Tidy House Cleaners?</h2>
+          <h2 className="text-3xl md:text-5xl font-semibold mb-8">
+            Why Choose Tidy House Cleaners?
+          </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-12">
-            <WhyItem title="Trained Professionals" text="Our cleaners follow strict SOPs and quality standards." />
-            <WhyItem title="Consistent Results" text="We clean your home exactly the same way every visit." />
-            <WhyItem title="Locally Owned" text="Based in Oak Creek. Serving Milwaukee and nearby suburbs." />
+            <WhyItem
+              title="Trained Professionals"
+              text="Our cleaners follow strict SOPs and quality standards."
+            />
+            <WhyItem
+              title="Consistent Results"
+              text="We clean your home exactly the same way every visit."
+            />
+            <WhyItem
+              title="Locally Owned"
+              text="Based in Oak Creek. Serving Milwaukee and nearby suburbs."
+            />
           </div>
         </div>
       </section>
@@ -77,9 +106,12 @@ export default function HomePage() {
       {/* SERVICE AREA */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-5xl font-semibold mb-6">Serving Southeast Wisconsin</h2>
+          <h2 className="text-3xl md:text-5xl font-semibold mb-6">
+            Serving Southeast Wisconsin
+          </h2>
           <p className="text-gray-600 text-lg mb-10 max-w-xl mx-auto">
-            Milwaukee • Oak Creek • Franklin • Greenfield • South Milwaukee • Cudahy • Greendale • Bay View
+            Milwaukee • Oak Creek • Franklin • Greenfield • South Milwaukee •
+            Cudahy • Greendale • Bay View
           </p>
 
           <a
@@ -101,7 +133,6 @@ export default function HomePage() {
           Book Your Cleaning Now →
         </a>
       </section>
-
     </div>
   );
 }
