@@ -1,41 +1,23 @@
-"use client";
-
-import { useState } from "react";
 import PricingPreview from "@/components/pricing-preview";
 import { CheckCircle, Star, Shield, Phone } from "lucide-react";
 
-const videos = [
-  "/CleaningWorkerWalking-desktop-edit.mp4",
-  "/ProfessionalKitchenCleaning-desktop-edit.mp4", // Replace with your actual second video file name
-];
-
 export default function HomePage() {
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-
-  const handleVideoEnd = () => {
-    // Move to the next video, wrapping back to 0 if we reach the end
-    setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % videos.length);
-  };
-
   return (
     <div className="">
       {/* HERO SECTION */}
       <section className="relative pt-32 pb-40 overflow-hidden">
         
         {/* 1. BACKGROUND VIDEO */}
-        {/* We use the 'key' prop here. When the key changes, React unmounts 
-            the old video and mounts the new one, ensuring autoPlay triggers correctly.
-        */}
         <video
-          key={videos[currentVideoIndex]} 
           autoPlay
+          loop
           muted
           playsInline
-          onEnded={handleVideoEnd} 
-          // CHANGE: Added 'md:object-top' to fix desktop cropping
-          className="absolute top-0 left-0 w-full h-full object-cover md:object-top z-0 transition-opacity duration-500"
+          // md:object-top ensures the top of the video (heads) isn't cut off on wide screens
+          className="absolute top-0 left-0 w-full h-full object-cover md:object-top z-0"
         >
-          <source src={videos[currentVideoIndex]} type="video/mp4" />
+          {/* Ensure this file name matches exactly what is in your public folder */}
+          <source src="/Hero Video.mp4" type="video/mp4" />
         </video>
 
         {/* 2. DARK OVERLAY */}

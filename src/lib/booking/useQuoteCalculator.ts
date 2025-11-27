@@ -14,7 +14,7 @@ const BASE_PRICES: Record<string, number> = {
   "3br": 190, // 3 Bedroom (< 1500 sq ft)
   "4br": 250, // 4 Bedroom (< 2000 sq ft)
   "5br": 320, // 5 Bedroom (Large)
-  "studio": 90,
+  "studio": 0,
 };
 
 export function useQuoteCalculator(form: BookingFormValues, addOns: AddOn[]) {
@@ -25,7 +25,7 @@ export function useQuoteCalculator(form: BookingFormValues, addOns: AddOn[]) {
     // 2. Add Bathroom fee ($30 per bath is standard)
     // We subtract 1 because usually 1 bath is included in the base package price, 
     // but you can adjust logic as needed. Here I'll just charge per bath.
-    const bathPrice = (form.bathrooms || 0) * 30;
+    const bathPrice = (form.bathrooms || 0) * 0.25;
 
     // 3. Deep Clean Multiplier (e.g. +40% or flat fee)
     const deepCleanFee = form.cleaningType === "deep" ? 60 : 0;

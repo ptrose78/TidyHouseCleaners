@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 // 1. SAFETY CHECK: Ensure the key exists to prevent build crashes
-if (!process.env.STRIPE_SECRET_KEY) {
+if (!process.env.LIVE_STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is missing. Please set it in your .env file.');
 }
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.LIVE_STRIPE_SECRET_KEY, {
   apiVersion: "2025-11-17.clover", // Use a valid, recent stable version
 });
 
