@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cancelReminder } from '@/lib/twilio'; 
+import { cancelScheduledReminder } from '@/lib/sms'; 
 
 // NOTE: Import your actual database client here (e.g., Prisma, Supabase, Firebase)
 // import { db } from '@/lib/db'; 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     // --- STEP 2: Cancel the text message ---
     // We check if a reminder ID exists before trying to cancel
     if (booking.reminderMessageSid) {
-      await cancelReminder(booking.reminderMessageSid);
+      await cancelScheduledReminder(booking.reminderMessageSid);
     }
 
     // --- STEP 3: Cancel the booking in your Database ---
