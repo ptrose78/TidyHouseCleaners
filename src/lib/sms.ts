@@ -23,7 +23,8 @@ export async function scheduleAppointmentReminder(
     }
 
     const message = await client.messages.create({
-      body: `Hi! This is a reminder from Tidy House Cleaners. Your cleaning is scheduled for tomorrow at ${appointmentDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`,
+      // Cancellation instruction
+      body: `Hi! Reminder from Tidy House Cleaners: your cleaning is tomorrow at ${appointmentDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}. To cancel, reply CANCEL.`,
       messagingServiceSid: messagingServiceSid,
       to: userPhone,
       scheduleType: 'fixed',
@@ -39,7 +40,7 @@ export async function scheduleAppointmentReminder(
   }
 }
 
-// 3. NEW: Cancel Function
+// 3. Cancel Function
 export async function cancelScheduledReminder(messageSid: string) {
   if (!messageSid) return;
 

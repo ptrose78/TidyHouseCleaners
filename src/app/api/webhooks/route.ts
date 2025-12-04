@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { Resend } from "resend";
+import { client } from "@/lib/sms"; 
+import { supabaseAdmin } from "@/lib/supabase";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover", // Keep your specific version
@@ -30,17 +32,73 @@ export async function POST(request: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     console.log("💰 Payment succeeded for session:", session.id);
 
-    // Extract Data
-    const { customer_name, service_date, homeSize, addOns, phone, address } = session.metadata || {};
-    const customerEmail = session.customer_details?.email; // Prefer customer_details over session.email
-    const amountPaid = session.amount_total ? (session.amount_total / 100).toFixed(2) : "0.00";
+    // EXPANDED METADATA EXTRACTION: Assumes all necessary booking fields were passed from checkout session
+    const { 
+      customer_name, 
+      service_date, 
+      phone, 
+      address, 
+      homeSize, 
+      cleaningType,
+      timeSlot,
+      bathrooms,
+      cleaningNeeds,
+      isNewCustomer,
+    } = session.metadata || {}; 
+    
+    const customerEmail = session.customer_details?.email;
+    // Calculate final payment amount and format
+    const amountPaid = session.amount_total ? (session.amount_total / 100) : 0; 
+    const formattedAmountPaid = amountPaid.toFixed(2);
 
     try {
-      // 3. Send Email to CUSTOMER
+      // 3. NEW: Save Booking to Supabase (Database of Record)
+      const { data: bookingData, error: dbError } = await supabaseAdmin
+        .from("bookings")
+        .insert([
+          {
+            name: customer_name,
+            email: customerEmail,
+            phone: phone,
+            address: address,
+            home_size: homeSize,
+            // Convert to integer or handle potential nulls for DB insert
+            bathrooms: bathrooms ? parseInt(bathrooms) : 1, 
+            cleaning_type: cleaningType,
+            cleaning_needs: cleaningNeeds,
+            time_slot: timeSlot,
+            // Convert string to boolean
+            is_new_customer: isNewCustomer === 'true', 
+            estimated_price: amountPaid,
+            preferred_date: service_date, // Should be an ISO date string
+            reminder_message_sid: null, // Placeholder, updated later by create-booking API or cron
+            status: 'confirmed', 
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (dbError) {
+        console.error("❌ Supabase DB Error:", dbError);
+        // CRITICAL: We log the error but proceed to send confirmation to the user (SMS/Email) 
+        // since payment was successful. Manual follow-up is required.
+      }
+        
+      // 4. Send IMMEDIATE SMS Confirmation
+      if (phone) {
+        console.log(`📱 Attempting to send SMS confirmation to: ${phone}`);
+        await client.messages.create({
+          to: phone,
+          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID, 
+          body: `✅ Confirmed! Your Tidy House cleaning is booked for ${service_date}. Total paid: $${formattedAmountPaid}. See email for details.`
+        });
+        console.log("✅ SMS Confirmation Sent!");
+      }
+
+      // 5. Send Email to CUSTOMER (Existing Logic)
       if (customerEmail) {
         console.log(`📧 Attempting to send email to customer: ${customerEmail}`);
         
-        // DESTRUCTURED RESPONSE: This fixes the "Property id does not exist" error
         const { data: customerData, error: customerError } = await resend.emails.send({
           from: `Tidy House Cleaners <${process.env.BUSINESS_EMAIL!}>`,
           to: customerEmail, 
@@ -48,7 +106,7 @@ export async function POST(request: Request) {
           html: `
             <h1>Booking Confirmed!</h1>
             <p>Hi ${customer_name || 'Customer'},</p>
-            <p>Thank you for booking. Payment of <strong>$${amountPaid}</strong> received.</p>
+            <p>Thank you for booking. Payment of <strong>$${formattedAmountPaid}</strong> received.</p>
             <ul>
                 <li><strong>Date:</strong> ${service_date}</li>
                 <li><strong>Address:</strong> ${address}</li>
@@ -63,7 +121,7 @@ export async function POST(request: Request) {
         }
       }
 
-      // 4. Send Alert Email to YOU
+      // 6. Send Alert Email to YOU (Existing Logic)
       const MY_EMAIL = 'paultrose1@gmail.com'; 
       console.log(`📧 Attempting to send alert to owner: ${MY_EMAIL}`);
       
@@ -71,7 +129,7 @@ export async function POST(request: Request) {
         from: `Tidy House Cleaners <${process.env.BUSINESS_EMAIL!}>`,
         to: MY_EMAIL,
         subject: `NEW BOOKING: ${customer_name}`,
-        html: `<p>New job confirmed for $${amountPaid}</p>`,
+        html: `<p>New job confirmed for $${formattedAmountPaid}</p>`,
       });
 
       if (adminError) {
@@ -80,9 +138,9 @@ export async function POST(request: Request) {
         console.log("✅ Admin Email Sent! ID:", adminData?.id);
       }
 
-    } catch (emailError) {
-      // This catches crashes (e.g., network timeout), distinct from the API returning an error object
-      console.error("❌ CRITICAL EMAIL FAILURE:", emailError);
+    } catch (error) {
+      // This catches crashes (e.g., network timeout)
+      console.error("❌ CRITICAL PROCESS FAILURE (DB/Email/SMS):", error);
     }
   } else {
     console.log(`ℹ️ Unhandled event type: ${event.type}`);
