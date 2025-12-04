@@ -1,13 +1,21 @@
+// src/app/api/create-checkout-session/route.ts
+
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+// DETERMINE WHICH KEY TO USE: Use LIVE for production, TEST otherwise (e.g., local/preview)
+const isProduction = process.env.NODE_ENV === 'production';
+const stripeSecretKey = isProduction 
+  ? process.env.LIVE_STRIPE_SECRET_KEY // Assuming your live key is named this
+  : process.env.STRIPE_SECRET_KEY;     // Assuming your test key is named this
+
 // 1. SAFETY CHECK: Ensure the key exists to prevent build crashes
-if (!process.env.LIVE_STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is missing. Please set it in your .env file.');
+if (!stripeSecretKey) {
+  throw new Error('Stripe secret key is missing. Please set it in your .env file.');
 }
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.LIVE_STRIPE_SECRET_KEY, {
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2025-11-17.clover", // Use a valid, recent stable version
 });
 

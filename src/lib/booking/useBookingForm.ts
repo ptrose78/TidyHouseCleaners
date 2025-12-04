@@ -42,7 +42,7 @@ export function useBookingForm() {
 
   const goBack = () => setStep(prev => prev - 1);
 
-  // --- UPDATED SUBMIT LOGIC FOR STRIPE ---
+    // --- SUBMIT LOGIC FOR STRIPE ---
   const onSubmit = async (values: BookingFormValues, estimatedPrice: number) => {
     try {
       // 1. Call the API to create a Stripe Checkout Session
@@ -57,12 +57,18 @@ export function useBookingForm() {
           cleaningType: values.cleaningType,
           price: estimatedPrice,
           
-          // Optional: Pass other details if you want to save them in Stripe Metadata
+          // CRITICAL: PASS ALL DATA REQUIRED FOR WEBHOOK/SUPABASE INSERT
           metadata: {
              phone: values.phone,
              address: values.address,
              homeSize: values.homeSize,
-             addOns: addOns.join(", ")
+             addOns: addOns.join(", "),
+             // ADD THESE MISSING FIELDS
+             bathrooms: String(values.bathrooms), // Must be a string for Stripe metadata
+             cleaningType: values.cleaningType,
+             cleaningNeeds: values.cleaningNeeds,
+             timeSlot: values.timeSlot,
+             isNewCustomer: String(values.isNewCustomer), // Must be a string
           }
         }),
       });
