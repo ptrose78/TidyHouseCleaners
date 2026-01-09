@@ -65,11 +65,20 @@ export async function POST(request: Request) {
             status: 'confirmed', 
       }]);
 
-      // 2. Send SMS (Existing logic)
+      // 2. Send SMS
       if (phone) {
+        // Ensure formatting
+        const formattedPhone = phone.startsWith('+1') ? phone : `+1${phone}`;
+
         await client.messages.create({
-          to: phone,
-          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID, 
+          to: formattedPhone,
+          
+          // 🔴 REMOVE or COMMENT OUT THIS LINE:
+          // messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID, 
+          
+          // 🟢 ADD THIS LINE (The Bypass):
+          from: process.env.TWILIO_PHONE_NUMBER, 
+          
           body: `✅ Confirmed! Your Tidy House cleaning is set for ${readableDate} at ${timeSlot || '9:00 AM'}.`
         });
       }
@@ -111,12 +120,24 @@ export async function POST(request: Request) {
         });
       }
 
-      // 4. Send Admin Alert (Keep simple)
+      // 4. Send Admin Alert (Instant + Official)
       await resend.emails.send({
         from: `Tidy House Cleaners <${process.env.BUSINESS_EMAIL!}>`,
-        to: 'info@tidyhousecleaners.com',
+        to: process.env.BUSINESS_EMAIL!, // Send to official
+        bcc: 'ptrose78+admin@gmail.com', // BCC personal for speed
+        // If customerEmail is null, use undefined (which Resend accepts)
+        replyTo: customerEmail || undefined, // ⭐️ Add this so you can reply to customer!
         subject: `NEW JOB: ${customer_name} on ${readableDate}`,
-        html: `<p>New booking received!</p><p><strong>Customer:</strong> ${customer_name}</p><p><strong>Date:</strong> ${readableDate}</p><p><strong>Address:</strong> ${address}</p><p><strong>Amount:</strong> $${amountPaid}</p>`,
+        html: `
+          <h2>New Website Booking</h2>
+          <p><strong>Customer:</strong> ${customer_name}</p>
+          <p><strong>Email:</strong> ${customerEmail}</p>
+          <p><strong>Date:</strong> ${readableDate}</p>
+          <p><strong>Address:</strong> ${address}</p>
+          <p><strong>Amount:</strong> $${amountPaid}</p>
+          <hr />
+          <a href="mailto:${customerEmail}" style="background-color: #000; color: #fff; padding: 10px; text-decoration: none;">Email Customer Now</a>
+        `,
       });
 
     } catch (error) {
