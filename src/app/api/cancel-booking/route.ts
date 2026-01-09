@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cancelScheduledReminder } from '@/lib/sms'; 
-
-// NOTE: Import your actual database client here (e.g., Prisma, Supabase, Firebase)
-// import { db } from '@/lib/db'; 
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
@@ -13,38 +11,47 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing booking ID' }, { status: 400 });
     }
 
-    // --- STEP 1: Look up the booking in your Database ---
-    // You need to retrieve the 'reminderMessageSid' you saved when they booked.
-    // const booking = await db.booking.findUnique({ where: { id: bookingId } });
-    
-    // MOCK DATA (Delete this block when you add real DB code)
-    const booking = {
-      id: bookingId,
-      status: 'confirmed',
-      reminderMessageSid: 'SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' // This would come from your DB
-    };
-    // ----------------------------------------------------
+    // --- STEP 1: Look up the booking in Supabase ---
+    const { data: booking, error: findError } = await supabaseAdmin
+        .from('bookings')
+        .select('id, reminder_message_sid, status')
+        .eq('id', bookingId)
+        .single();
 
-    if (!booking) {
+    if (findError || !booking) {
+      console.error("Booking lookup failed:", findError);
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    // --- STEP 2: Cancel the text message ---
+    // --- STEP 2: Cancel the text message (Twilio) ---
     // We check if a reminder ID exists before trying to cancel
-    if (booking.reminderMessageSid) {
-      await cancelScheduledReminder(booking.reminderMessageSid);
+    if (booking.reminder_message_sid) {
+      try {
+        await cancelScheduledReminder(booking.reminder_message_sid);
+        console.log(`❌ Cancelled Twilio reminder: ${booking.reminder_message_sid}`);
+      } catch (twilioError) {
+        console.warn("Could not cancel Twilio msg (might already be sent/cancelled):", twilioError);
+        // Continue execution - we still want to cancel the booking in the DB
+      }
     }
 
-    // --- STEP 3: Cancel the booking in your Database ---
-    // await db.booking.update({ 
-    //   where: { id: bookingId }, 
-    //   data: { status: 'canceled', reminderMessageSid: null } 
-    // });
+    // --- STEP 3: Cancel the booking in Supabase ---
+    const { error: updateError } = await supabaseAdmin
+        .from('bookings')
+        .update({ 
+            status: 'canceled', 
+            reminder_message_sid: null 
+        })
+        .eq('id', bookingId);
+
+    if (updateError) {
+        throw new Error(updateError.message);
+    }
     
     return NextResponse.json({ success: true, message: 'Booking cancelled and reminder stopped' });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

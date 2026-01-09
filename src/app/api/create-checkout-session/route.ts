@@ -1,40 +1,31 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-// DETERMINE WHICH KEY TO USE: Use LIVE for production, TEST otherwise
-const isProduction = process.env.NODE_ENV === 'production';
-const stripeSecretKey = isProduction 
-  ? process.env.LIVE_STRIPE_SECRET_KEY 
-  : process.env.STRIPE_SECRET_KEY;
-
-if (!stripeSecretKey) {
-  throw new Error('Stripe secret key is missing. Please set it in your .env file.');
+if (!process.env.LIVE_STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is missing. Please set it in your .env file.');
 }
 
-const stripe = new Stripe(stripeSecretKey, {
+const stripe = new Stripe(process.env.LIVE_STRIPE_SECRET_KEY, {
   apiVersion: "2025-11-17.clover", 
 });
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    // 1. EXTRACT 'metadata' from the request body
-    const { email, name, price, cleaningType, date, metadata } = body;
+    const { email, name, price, cleaningType, date, metadata } = body; // Destructure metadata here
 
     const origin = process.env.NEXT_PUBLIC_URL || 
                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card", "us_bank_account"],
-      
       line_items: [
         {
           price_data: {
             currency: "usd",
             product_data: {
               name: `Cleaning Service (${cleaningType})`,
-              description: `Scheduled for ${date}`,
+              description: `Scheduled for ${new Date(date).toLocaleDateString()}`,
             },
             unit_amount: Math.round(price * 100), 
           },
@@ -46,11 +37,11 @@ export async function POST(request: Request) {
       cancel_url: `${origin}/booking?canceled=true`,
       customer_email: email,
       
-      // 2. PASS THE METADATA TO STRIPE
+      // CRITICAL FIX: Pass the address and other details to Stripe
       metadata: {
         customer_name: name,
         service_date: date,
-        ...metadata, 
+        ...metadata, // <--- This includes address, phone, homeSize, etc.
       },
     });
 
